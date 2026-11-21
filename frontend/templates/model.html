@@ -5,7 +5,7 @@
 <div id="page" th:remove="tag">
 <div class="page-head">
     <div class="title">About the placement model</div>
-    <div class="sub">A logistic-regression model trained and evaluated entirely in Java. It gives a secondary,
+    <div class="sub">Three classifiers are trained and compared; the best cross-validated model gives a secondary,
         data-driven estimate next to the official 60-rule readiness score.</div>
 </div>
 
@@ -26,6 +26,23 @@
     <div th:replace="~{fragments/ui :: metric('Training rows', ${m.trainRows()}, ${m.testRows() + ' rows held out for testing'})}"></div>
 </div>
 
+<div class="section-title" th:if="${!m.comparisons().isEmpty()}">Candidate model comparison</div>
+<div class="tablewrap" th:if="${!m.comparisons().isEmpty()}">
+    <table class="table">
+        <tr><th>Candidate</th><th>Training ROC-AUC</th><th>5-fold CV ROC-AUC</th><th>Held-out test ROC-AUC</th><th>Test F1</th><th>Selection</th></tr>
+        <tr th:each="c : ${m.comparisons()}">
+            <td th:text="${c.name()}">Model</td>
+            <td th:text="${c.trainAuc()}">0.9</td>
+            <td th:text="${c.cvAucMean() + ' +/- ' + c.cvAucStd()}">0.8</td>
+            <td th:text="${c.test().rocAuc()}">0.8</td>
+            <td th:text="${c.test().f1()}">0.7</td>
+            <td><span class="badge b-success" th:if="${c.selected()}">Selected</span>
+                <span class="muted" th:unless="${c.selected()}">Compared</span></td>
+        </tr>
+    </table>
+</div>
+<p class="muted small" th:if="${!m.comparisons().isEmpty()}">Selection uses cross-validation ROC-AUC only; the held-out test results are reported after selection.</p>
+
 <div class="grid g2">
     <div th:replace="~{fragments/ui :: chart(${rocChart}, 'ROC curve on held-out test data')}"></div>
     <div th:replace="~{fragments/ui :: chart(${calibrationChart}, 'Calibration on held-out test data')}"></div>
@@ -35,9 +52,9 @@
     compares the predicted probability with how often students in that range were actually placed; points on the
     dashed line mean the percentages can be taken at face value.</div>
 
-<div class="section-title">What the model learned</div>
-<div th:replace="~{fragments/ui :: chart(${coefChart}, 'Odds ratio for each feature')}"></div>
-<div class="tablewrap">
+<div class="section-title" th:if="${logisticModel}">What logistic regression learned</div>
+<div th:if="${logisticModel}" th:replace="~{fragments/ui :: chart(${coefChart}, 'Odds ratio for each feature')}"></div>
+<div class="tablewrap" th:if="${logisticModel}">
     <table class="table">
         <tr><th>Feature</th><th>Model input</th><th>Training mean</th><th>Std. deviation</th><th>Weight (log-odds per SD)</th><th>Odds ratio per SD</th></tr>
         <tr th:each="r : ${featureRows}">
@@ -50,6 +67,20 @@
         </tr>
         <tr><td><b>Intercept</b></td><td colspan="3" class="muted">log-odds for an average profile</td>
             <td th:text="${m.bias()}">0.3</td><td></td></tr>
+    </table>
+</div>
+<div class="section-title" th:unless="${logisticModel}">Tree-model feature importance</div>
+<div th:if="${!logisticModel}" th:replace="~{fragments/ui :: chart(${importanceChart}, 'Feature importance')}"></div>
+<div class="tablewrap" th:unless="${logisticModel}">
+    <table class="table">
+        <tr><th>Feature</th><th>Model input</th><th>Training mean</th><th>Training range</th><th>Importance</th></tr>
+        <tr th:each="r, stat : ${importanceRows}">
+            <td><b th:text="${r.label()}">CGPA</b></td>
+            <td class="muted" th:text="${r.key()}">cgpa_ratio</td>
+            <td th:text="${#numbers.formatDecimal(m.mean()[stat.index], 1, 3)}">0.75</td>
+            <td th:text="${#numbers.formatDecimal(m.min()[stat.index], 1, 3) + ' - ' + #numbers.formatDecimal(m.max()[stat.index], 1, 3)}">range</td>
+            <td th:text="${r.importance()}">0.4</td>
+        </tr>
     </table>
 </div>
 
@@ -78,10 +109,12 @@
             <li><b>Features:</b> CGPA (as a share of its scale), projects, internship (yes/no), communication and
                 extracurricular ratings. No sensitive personal data is used.</li>
             <li><b>Split:</b> stratified 80% training / 20% test. The test rows were used once, at the end.</li>
-            <li><b>Tuning:</b> <span th:text="${m.cvFolds()}">5</span>-fold stratified cross-validation over L2 penalties
+            <li th:if="${logisticModel}"><b>Logistic tuning:</b> <span th:text="${m.cvFolds()}">5</span>-fold stratified cross-validation over L2 penalties
                 <span th:text="${#strings.arrayJoin(lambdas, ', ')}">...</span>; chosen
                 <span th:text="${m.lambda()}">1</span> (CV ROC-AUC <span th:text="${m.cvAucMean()}">0.78</span>
                 &plusmn; <span th:text="${m.cvAucStd()}">0.01</span>).</li>
+            <li th:unless="${logisticModel}"><b>Selection:</b> the best mean ROC-AUC across
+                <span th:text="${m.cvFolds()}">5</span>-fold stratified cross-validation; the held-out test set was not used to select the model.</li>
             <li><b>Threshold:</b> <span th:text="${m.threshold()}">0.5</span>, the value that maximised F1 on the
                 cross-validation predictions.</li>
             <li><b>Algorithm:</b> <span th:text="${modelName}">LR</span>, model <span th:text="${m.version()}">v</span>,

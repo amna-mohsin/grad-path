@@ -35,7 +35,10 @@ class WebSecurityIT extends IntegrationTestBase {
 
     @Test
     void landingIsPublicAndProtectedPagesRedirectToSignIn() throws Exception {
-        mvc.perform(get("/")).andExpect(status().isOk()).andExpect(content().string(org.hamcrest.Matchers.containsString("Get started")));
+        mvc.perform(get("/")).andExpect(status().isOk())
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("Get started")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("data-password-toggle=\"password\"")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("aria-controls=\"si-pw\"")));
         mvc.perform(get("/student")).andExpect(status().is3xxRedirection()).andExpect(redirectedUrl("/?signin=required"));
         mvc.perform(get("/officer/reports")).andExpect(status().is3xxRedirection());
         mvc.perform(get("/messages")).andExpect(status().is3xxRedirection());
@@ -135,7 +138,7 @@ class WebSecurityIT extends IntegrationTestBase {
         mvc.perform(get("/officer/students/" + s.getId()).cookie(off)).andExpect(status().isOk())
                 .andExpect(content().string(org.hamcrest.Matchers.containsString("Model placement estimate")));
         mvc.perform(get("/model").cookie(off)).andExpect(status().isOk())
-                .andExpect(content().string(org.hamcrest.Matchers.containsString("Practice model")));
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("Candidate model comparison")));
     }
 
     @Test

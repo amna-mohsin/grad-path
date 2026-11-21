@@ -217,6 +217,22 @@ public final class ChartFactory {
                         "margin", map("l", 130, "r", 50, "t", 50, "b", 50)));
     }
 
+    /** Normalized impurity-based feature importance for decision-tree models. */
+    public static Map<String, Object> featureImportance(ai.gradpath.ml.PlacementModel m) {
+        List<String> names = ai.gradpath.ml.PlacementFeatures.LABELS;
+        List<Double> values = new ArrayList<>();
+        for (double value : m.featureImportance()) {
+            values.add(Math.round(value * 1000) / 1000.0);
+        }
+        return spec(List.of(map("type", "bar", "orientation", "h", "y", names, "x", values,
+                        "base", 0, "text", values.stream().map(v -> String.format(java.util.Locale.ROOT, "%.3f", v)).toList(),
+                        "textposition", "outside", "cliponaxis", false, "marker", map("color", INDIGO),
+                        "hovertemplate", "%{y}: normalized importance %{x:.3f}<extra></extra>")),
+                map("title", "Tree-based feature importance", "height", 320,
+                        "xaxis", map("title", "Normalized impurity decrease"), "yaxis", map("autorange", "reversed"),
+                        "margin", map("l", 130, "r", 50, "t", 50, "b", 50)));
+    }
+
     /** Reliability diagram: predicted probability vs observed placement rate per bin. */
     public static Map<String, Object> calibration(ai.gradpath.ml.PlacementModel m) {
         List<double[]> bins = m.test().calibration();

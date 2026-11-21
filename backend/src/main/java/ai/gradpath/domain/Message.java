@@ -21,7 +21,7 @@ public class Message {
     private Integer senderId;
     @Column(name = "recipient_id", nullable = false)
     private Integer recipientId;
-    /** Optional job the message is about. */
+    /** Optional contextual link; deleting the job clears this id but keeps the message. */
     @Column(name = "job_id")
     private Integer jobId;
     @Column(nullable = false, columnDefinition = "text")

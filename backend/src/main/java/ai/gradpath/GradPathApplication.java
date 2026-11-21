@@ -11,7 +11,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
  *
  * <p>A Spring Boot web application (Spring MVC + Thymeleaf) that connects students with their Career Office.
  * The official readiness score comes from a deterministic, explainable 60-rule engine ({@code ai.gradpath.readiness}).
- * A secondary, data-driven placement estimate comes from a logistic-regression model trained in Java
+ * A secondary, data-driven placement estimate comes from the cross-validation-selected classifier trained in Java
  * ({@code ai.gradpath.ml}); {@code train-model} as the first argument runs the trainer instead of the web app.
  */
 @SpringBootApplication(exclude = UserDetailsServiceAutoConfiguration.class)

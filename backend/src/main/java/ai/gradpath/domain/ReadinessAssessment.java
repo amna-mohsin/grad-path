@@ -10,7 +10,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 
 /**
- * One saved rule-based readiness result (ASSOCIATION: Student 1 -- * ReadinessAssessment), used for score history.
+ * Database composition: a student's saved readiness results are deleted with the student via the foreign-key cascade.
  *
  * <p>Stored in the existing placement_predictions table: the "probability" column holds the 0-100 readiness score
  * (it is NOT a probability). Rows created by the earlier ML/demo scorer are flagged {@code is_legacy} and are never

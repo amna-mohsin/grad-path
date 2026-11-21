@@ -54,6 +54,20 @@ public record PlacementDataset(List<double[]> rows, int[] labels, String source,
 
     /** Load a placement CSV. Rows with a missing or unreadable value are skipped. */
     public static PlacementDataset load(Path csv) throws IOException {
+        return load(csv, null);
+    }
+
+    /**
+     * Load a placement CSV using an explicitly supplied grading scale, avoiding inference from held-out feature rows.
+     */
+    public static PlacementDataset load(Path csv, double cgpaScale) throws IOException {
+        if (cgpaScale != 4.0 && cgpaScale != 5.0 && cgpaScale != 10.0) {
+            throw new IOException("CGPA scale must be 4, 5 or 10");
+        }
+        return load(csv, Double.valueOf(cgpaScale));
+    }
+
+    private static PlacementDataset load(Path csv, Double explicitCgpaScale) throws IOException {
         try (BufferedReader in = Files.newBufferedReader(csv, StandardCharsets.UTF_8)) {
             String headerLine = in.readLine();
             if (headerLine == null) {
@@ -94,7 +108,8 @@ public record PlacementDataset(List<double[]> rows, int[] labels, String source,
             if (raw.isEmpty()) {
                 throw new IOException("No usable rows were found in " + csv.getFileName());
             }
-            double scale = maxCgpa > 5.0 ? 10.0 : (maxCgpa > 4.0 ? 5.0 : 4.0);
+            double scale = explicitCgpaScale != null ? explicitCgpaScale
+                    : maxCgpa > 5.0 ? 10.0 : (maxCgpa > 4.0 ? 5.0 : 4.0);
             for (double[] r : raw) {
                 r[0] = Math.max(0, Math.min(1, r[0] / scale));
             }

@@ -20,6 +20,7 @@ public class AuthSession {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
+    /** Database composition: deleting the account revokes its sessions via the foreign-key cascade. */
     @Column(name = "user_id", nullable = false)
     private Integer userId;
     @Column(name = "token_hash", length = 64, nullable = false, unique = true)

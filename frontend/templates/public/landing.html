@@ -47,7 +47,14 @@
                         <input id="si-email" type="email" name="email" autocomplete="username" required maxlength="150"
                                placeholder="name@university.edu" th:value="${loginEmail}"></div>
                     <div class="field"><label for="si-pw">Password</label>
-                        <input id="si-pw" type="password" name="password" autocomplete="current-password" required maxlength="72"></div>
+                        <div class="password-input" data-password-field>
+                            <input id="si-pw" type="password" name="password" autocomplete="current-password" required maxlength="72">
+                            <button class="password-toggle" type="button" data-password-toggle="password"
+                                    aria-controls="si-pw" aria-label="Show password" aria-pressed="false">
+                                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/><path class="eye-slash" d="m3 3 18 18"/></svg>
+                            </button>
+                        </div>
+                    </div>
                     <div class="field"><label class="check"><input type="checkbox" name="remember" value="true">
                         Keep me signed in for 30 days on this device</label></div>
                     <button type="submit" class="btn primary block" data-busy="Signing in...">Sign in</button>
@@ -68,10 +75,23 @@
                                placeholder="name@university.edu" th:value="${regRole != 'officer' ? regEmail : ''}"></div>
                     <div class="grid g2">
                         <div class="field"><label for="rs-pw">Password <span class="req">*</span></label>
-                            <input id="rs-pw" type="password" name="password" maxlength="72" required autocomplete="new-password">
+                            <div class="password-input" data-password-field>
+                                <input id="rs-pw" type="password" name="password" maxlength="72" required autocomplete="new-password">
+                                <button class="password-toggle" type="button" data-password-toggle="password"
+                                        aria-controls="rs-pw" aria-label="Show password" aria-pressed="false">
+                                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/><path class="eye-slash" d="m3 3 18 18"/></svg>
+                                </button>
+                            </div>
                             <div class="hint">At least 8 characters with a letter and a number.</div></div>
                         <div class="field"><label for="rs-pw2">Confirm password <span class="req">*</span></label>
-                            <input id="rs-pw2" type="password" name="confirm" maxlength="72" required autocomplete="new-password"></div>
+                            <div class="password-input" data-password-field>
+                                <input id="rs-pw2" type="password" name="confirm" maxlength="72" required autocomplete="new-password">
+                                <button class="password-toggle" type="button" data-password-toggle="password"
+                                        aria-controls="rs-pw2" aria-label="Show password" aria-pressed="false">
+                                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/><path class="eye-slash" d="m3 3 18 18"/></svg>
+                                </button>
+                            </div>
+                        </div>
                     </div>
                     <button type="submit" class="btn primary block" data-busy="Creating account...">Create student account</button>
                     <p class="muted mt-s">Next you'll complete a short profile, then go straight to your dashboard.</p>
@@ -98,13 +118,33 @@
                             <input id="ro-office" type="text" name="office" maxlength="120" required
                                    placeholder="University Career Office" th:value="${regOffice}"></div>
                         <div class="field"><label for="ro-code">Officer access code <span class="req">*</span></label>
-                            <input id="ro-code" type="password" name="accessCode" maxlength="120" required autocomplete="off">
+                            <div class="password-input" data-password-field>
+                                <input id="ro-code" type="password" name="accessCode" maxlength="120" required autocomplete="off">
+                                <button class="password-toggle" type="button" data-password-toggle="access code"
+                                        aria-controls="ro-code" aria-label="Show access code" aria-pressed="false">
+                                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/><path class="eye-slash" d="m3 3 18 18"/></svg>
+                                </button>
+                            </div>
                             <div class="hint">Provided privately by your university's Career Office.</div></div>
                         <div class="grid g2">
                             <div class="field"><label for="ro-pw">Password <span class="req">*</span></label>
-                                <input id="ro-pw" type="password" name="password" maxlength="72" required autocomplete="new-password"></div>
+                                <div class="password-input" data-password-field>
+                                    <input id="ro-pw" type="password" name="password" maxlength="72" required autocomplete="new-password">
+                                    <button class="password-toggle" type="button" data-password-toggle="password"
+                                            aria-controls="ro-pw" aria-label="Show password" aria-pressed="false">
+                                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/><path class="eye-slash" d="m3 3 18 18"/></svg>
+                                    </button>
+                                </div>
+                            </div>
                             <div class="field"><label for="ro-pw2">Confirm password <span class="req">*</span></label>
-                                <input id="ro-pw2" type="password" name="confirm" maxlength="72" required autocomplete="new-password"></div>
+                                <div class="password-input" data-password-field>
+                                    <input id="ro-pw2" type="password" name="confirm" maxlength="72" required autocomplete="new-password">
+                                    <button class="password-toggle" type="button" data-password-toggle="password"
+                                            aria-controls="ro-pw2" aria-label="Show password" aria-pressed="false">
+                                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/><path class="eye-slash" d="m3 3 18 18"/></svg>
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                         <button type="submit" class="btn primary block" data-busy="Creating account...">Create officer account</button>
                     </form>

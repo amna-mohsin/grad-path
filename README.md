@@ -22,11 +22,11 @@ and applications, manage job listings, communicate with students and view report
 | Resume text extraction | Apache PDFBox 3 |
 | Passwords | BCrypt (Spring Security Crypto) |
 | Career assistant | Built-in deterministic rule-based assistant; optional Groq / OpenAI / Gemini / Anthropic |
-| Placement model | Logistic regression (L2, Newton/IRLS) written, trained and evaluated in plain Java (`ai.gradpath.ml`) |
+| Placement model | Logistic regression, decision tree and random forest trained and compared in plain Java (`ai.gradpath.ml`) |
 | Tests | JUnit 5, AssertJ, Spring Boot Test, MockMvc |
 
-There is **no Python** anywhere in this repository. The official readiness score is the 60-rule engine; a small
-logistic-regression model, trained in Java, adds a clearly labelled **secondary** placement estimate (see below).
+There is **no Python** anywhere in this repository. The official readiness score is the 60-rule engine; the best
+cross-validated classifier, trained in Java, adds a clearly labelled **secondary** placement estimate (see below).
 
 ## Features
 
@@ -42,7 +42,7 @@ logistic-regression model, trained in Java, adds a clearly labelled **secondary*
 | Onboarding / My Profile | Name, phone, city, portfolio, university, degree, department, graduation year, CGPA with grading scale (4.0 / 5.0 / 10.0), target career, confident and learning skills, certifications, projects, internships, work-experience months, communication and extracurricular ratings, profile completion. No sensitive demographic data. |
 | Overview | Welcome, profile completion, CGPA / projects / internships, readiness score and category, strengths and improvement areas, skills overview, goal progress, next steps, top matching jobs, application statuses, unread messages, recent activity. |
 | Placement Readiness | Score gauge, factor breakdown with weights, rule numbers and calculations, plain-language explanations, strengths / weaknesses, "biggest levers", what-if simulator (never saved), next steps, score history. Secondary model placement estimate with per-feature effects (also shown in the what-if simulator). |
-| About the Model | How the placement model was trained, test metrics (ROC-AUC, accuracy, precision, recall, F1, Brier), ROC and calibration charts, coefficients and limitations. Also available to officers. |
+| About the Model | Candidate comparison, held-out metrics (ROC-AUC, accuracy, precision, recall, F1, Brier), ROC and calibration charts, model-specific feature explanations and limitations. Also available to officers. |
 | Skill-Gap Analysis | Matched / learning / missing skills for an illustrative career, importance, learning tips, project ideas. |
 | Career Explorer | Five career paths with descriptions, responsibilities, skills, preparation advice and project ideas. |
 | Job Opportunities | Search by title/company, filter by category and level, listings ranked by skill match, details with missing skills, applied state. |
@@ -88,7 +88,7 @@ Browser ──HTTPS──> Spring Boot (Tomcat)
                     ├─ web/        Controllers (thin) + Thymeleaf templates + ChartFactory (Plotly specs)
                     ├─ service/    Business logic (auth, profiles, applications, jobs, goals, messages, reports, assistant)
                     ├─ readiness/  60-rule engine (FactorScorer template method + 7 scorers)
-                    ├─ ml/         Placement model: CSV loader, logistic regression (IRLS), CV trainer, metrics, JSON store
+                    ├─ ml/         Placement model: CSV loader, logistic/tree/forest trainers, metrics, JSON store
                     ├─ reference/  Illustrative career catalog and skill aliases
                     ├─ repository/ Spring Data JPA repositories
                     └─ domain/     JPA entities ──JDBC──> Neon PostgreSQL (schema by Flyway)
@@ -124,7 +124,7 @@ backend/                      Java code, configuration and tests
     config/       settings (GradPathProperties), .env loader, Neon datasource, security, demo seeder, start-up
     domain/       JPA entities
     readiness/    rule engine (60 rules)
-    ml/           placement model (dataset, logistic regression, trainer, metrics, model file, train-model command)
+    ml/           placement model (dataset, logistic/tree/forest trainers, metrics, model file, train-model command)
     reference/    career catalog
     repository/   Spring Data repositories
     security/     session filter, cookies, password hashing, login throttle, onboarding gate
@@ -226,35 +226,36 @@ Flyway migrations.
 ## Placement model (secondary estimate, pure Java)
 
 The 60-rule score is the **official** readiness measure: it alone sets the category and the readiness part of job
-fit. Next to it, a logistic-regression model gives a **secondary, data-driven estimate** of the chance of placement,
-with a per-feature explanation. It is written, trained and evaluated in plain Java (`backend/src/main/java/ai/gradpath/ml`) -
-no Python, no ML library.
+fit. Next to it, a **secondary, data-driven estimate** comes from whichever of logistic regression, a decision tree,
+or a random forest performs best under cross-validation. Model training and inference are implemented in plain Java
+(`backend/src/main/java/ai/gradpath/ml`) - no Python or ML library.
 
 | Step | What happens |
 |---|---|
 | Features | CGPA as a share of its scale, projects, internship (yes/no), communication (0-10), extracurricular (0-10). No sensitive data (IQ, gender, age ...) is read, even if the CSV contains it. |
 | Split | Stratified 80% training / 20% held-out test, fixed seed. |
-| Tuning | Stratified 5-fold cross-validation over L2 penalties 0, 0.1, 1, 10, 100, 1000; scaler fitted inside each fold; best mean ROC-AUC wins (simpler model on near-ties). |
-| Algorithm | Logistic regression trained with Newton's method (IRLS) - deterministic, converges in a few iterations. |
-| Threshold | The probability that maximises F1 on the out-of-fold predictions. |
-| Evaluation | Once, on the test rows: ROC-AUC, accuracy, precision, recall, F1, Brier score, log loss, confusion matrix, ROC and calibration curves. |
-| Output | `backend/src/main/resources/ml/placement-model.json` - coefficients and metrics only, no student data. |
+| Candidates | Logistic regression (L2 penalties 0, 0.1, 1, 10, 100, 1000), a depth-5 decision tree, and a 24-tree random forest. The tree models use minimum leaf sizes and random feature selection. |
+| Selection | Stratified 5-fold cross-validation on the training rows. The model with the best mean ROC-AUC wins; a simpler candidate within 0.001 ROC-AUC is preferred. |
+| Threshold | Each candidate's decision threshold maximises F1 on its out-of-fold predictions. |
+| Fit diagnostics | Training, cross-validation and held-out ROC-AUC are shown side-by-side; a large training-to-validation gap can reveal overfitting. |
+| Evaluation | Candidates are evaluated on the same stratified held-out test split: ROC-AUC, accuracy, precision, recall, F1, Brier score, log loss, confusion matrix, ROC and calibration curves. Test results are not used to select the model. |
+| Output | `backend/src/main/resources/ml/placement-model.json` - selected model parameters and comparison metrics only, no student data. |
 
-**The bundled model is a practice model trained on synthetic data**, because the Kaggle `placement.csv` is not in the
-repository (licence) - the UI labels it "Practice model" everywhere. To train on real data:
+The raw training CSV is not bundled because of dataset licensing; the JSON model artifact records its source and
+whether it was trained on synthetic practice data. To train on your approved CSV:
 
-```bash
-# put a licensed placement CSV at data/kaggle/placement.csv (git-ignored), then
-./mvnw -B package -DskipTests
-java -jar target/gradpath-ai.jar train-model data/kaggle/placement.csv     # overwrites the bundled model file
-./mvnw -B package                                                          # rebuild with the new model
+```powershell
+# Put the CSV at data\kaggle\placement.csv (git-ignored), then:
+.\mvnw.cmd -DskipTests package
+java -jar target\gradpath-ai.jar train-model data\kaggle\placement.csv --cgpa-scale 10
+.\mvnw.cmd package
 ```
 
 Accepted column names (case-insensitive): `CGPA`/`GPA`, `Internship_Experience`/`Internships`, `Projects_Completed`/
 `Projects`, `Communication_Skills`, `Extra_Curricular_Score`, `Placement`/`Placed`/`PlacementStatus` (Yes/No,
-Placed/Not placed, 1/0). The CGPA scale (4, 5 or 10) is detected automatically. Options: `--out <file>`, `--seed <n>`,
-`--synthetic`. To use a model file without rebuilding, set `PLACEMENT_MODEL_PATH`. Without any model, the estimate is
-simply hidden.
+Placed/Not placed, 1/0). CSV training requires `--cgpa-scale 4`, `5` or `10`; supplying this known grading scale avoids
+using held-out feature values to infer preprocessing. Other options: `--out <file>`, `--seed <n>`, `--synthetic`.
+To use a model file without rebuilding, set `PLACEMENT_MODEL_PATH`. Without any model, the estimate is simply hidden.
 
 ## Security and privacy
 * BCrypt password hashes; generic sign-in errors; per-email and per-address throttling.
@@ -273,7 +274,7 @@ simply hidden.
 
 | Feature | Reason |
 |---|---|
-| scikit-learn training, ONNX inference and the gradient-boosting model | Replaced by a logistic-regression model implemented and trained in Java (no Python). The rule engine stays the official score. |
+| scikit-learn training, ONNX inference and the gradient-boosting model | Replaced by Java implementations of logistic regression, decision trees and random forests. The rule engine stays the official score. |
 | Python Streamlit UI and pytest tests | Replaced by the Java Spring MVC + Thymeleaf UI and JUnit tests (no Python allowed). |
 | Separate REST API for the Streamlit client | No longer needed - the Java web app renders pages directly. Small JSON endpoints remain for the what-if simulator and assistant. |
 | Probability as the readiness score | The official score is the 0-100 rule score; the model probability is shown only as a secondary estimate. Earlier records are kept in the database as "legacy" and not displayed as rule results. |

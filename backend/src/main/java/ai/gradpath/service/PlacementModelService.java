@@ -93,7 +93,8 @@ public class PlacementModelService {
         PlacementFeatures f = PlacementFeatures.of(snapshot);
         double p = model.probability(f);
         return Optional.of(new PlacementEstimate(p, model.threshold(), model.placementRate(),
-                model.contributions(f), model.outsideTrainingRange(f), model.synthetic(), model.version()));
+                model.contributions(f), model.outsideTrainingRange(f), model.synthetic(), model.algorithmName(),
+                model.version()));
     }
 
     /**
@@ -105,11 +106,12 @@ public class PlacementModelService {
      * @param contributions   per-feature effects, largest first
      * @param extrapolated    true when an input was outside the training range (clamped to its edge)
      * @param synthetic       true when the model was trained on practice data
+     * @param algorithmName   selected classifier
      * @param modelVersion    model version
      */
     public record PlacementEstimate(double probability, double threshold, double baseRate,
                                     List<PlacementModel.Contribution> contributions, boolean extrapolated,
-                                    boolean synthetic, String modelVersion) {
+                                    boolean synthetic, String algorithmName, String modelVersion) {
 
         public int percent() {
             return (int) Math.round(probability * 100);
@@ -141,8 +143,11 @@ public class PlacementModelService {
             double v = c.logOdds();
             String size = Math.abs(v) < 0.15 ? "barely changes" : (Math.abs(v) < 0.6 ? (v > 0 ? "raises" : "lowers")
                     : (v > 0 ? "strongly raises" : "strongly lowers"));
-            return String.format(Locale.ROOT, "%s %s the estimate compared with an average student in the training data",
-                    c.label(), size);
+            String comparison = " compared with an average student in the training data";
+            if ("Decision tree".equals(algorithmName) || "Random forest".equals(algorithmName)) {
+                comparison = " in a one-feature comparison with a typical training profile";
+            }
+            return String.format(Locale.ROOT, "%s %s the estimate%s", c.label(), size, comparison);
         }
     }
 }

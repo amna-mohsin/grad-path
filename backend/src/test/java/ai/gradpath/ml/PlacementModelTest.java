@@ -113,6 +113,47 @@ class PlacementModelTest {
     }
 
     @Test
+    void comparesThreeClassifiersAndPersistsTheCrossValidationWinner(@TempDir Path dir) throws Exception {
+        PlacementModel selected = ModelTrainer.trainBest(PlacementDataset.synthetic(600, 13), 13);
+        assertThat(selected.comparisons()).hasSize(3);
+        assertThat(selected.comparisons().stream().map(ModelCandidate::algorithm).toList())
+                .containsExactly(PlacementModel.LOGISTIC_REGRESSION, PlacementModel.DECISION_TREE,
+                        PlacementModel.RANDOM_FOREST);
+        assertThat(selected.comparisons().stream().filter(ModelCandidate::selected).toList()).hasSize(1);
+        assertThat(selected.comparisons().stream().filter(ModelCandidate::selected).findFirst().orElseThrow().algorithm())
+                .isEqualTo(selected.algorithm());
+        assertThat(selected.probability(PlacementFeatures.of(profile(3.2, 2, 1, 7, 5)))).isBetween(0.0, 1.0);
+
+        Path file = dir.resolve("selected-model.json");
+        ModelStore.write(selected, file);
+        PlacementModel restored = ModelStore.read(file);
+        assertThat(restored.algorithm()).isEqualTo(selected.algorithm());
+        assertThat(restored.comparisons()).hasSize(3);
+        assertThat(restored.probability(PlacementFeatures.of(profile(3.2, 2, 1, 7, 5))))
+                .isEqualTo(selected.probability(PlacementFeatures.of(profile(3.2, 2, 1, 7, 5))));
+    }
+
+    @Test
+    void decisionTreeModelSurvivesJsonRoundTrip(@TempDir Path dir) throws Exception {
+        PlacementDataset data = PlacementDataset.synthetic(400, 29);
+        double[][] rows = data.rows().toArray(double[][]::new);
+        DecisionTreeModel tree = DecisionTreeClassifier.train(rows, data.labels(), 3, 10,
+                PlacementFeatures.COUNT, false, 29).model();
+        PlacementModel treeModel = new PlacementModel(PlacementModel.FORMAT, "decision-tree-test", "2026-01-01T00:00:00Z",
+                "test dataset", false, data.size(), 320, 80, 0.8, data.placementRate(), PlacementFeatures.NAMES,
+                new double[] {0.75, 2, 0.4, 6, 5}, new double[] {0.15, 1.5, 0.5, 2, 3},
+                new double[] {0.5, 0, 0, 3, 0}, new double[] {1, 8, 1, 10, 10}, new double[0], 0,
+                0, 0.5, 5, 0.8, 0.01, List.of(), model.test(), PlacementModel.DECISION_TREE,
+                List.of(tree), List.of(), new double[PlacementFeatures.COUNT]);
+        Path file = dir.resolve("tree-model.json");
+        ModelStore.write(treeModel, file);
+        PlacementModel restored = ModelStore.read(file);
+        PlacementFeatures input = PlacementFeatures.of(profile(3.2, 2, 1, 7, 5));
+        assertThat(restored.algorithm()).isEqualTo(PlacementModel.DECISION_TREE);
+        assertThat(restored.probability(input)).isEqualTo(treeModel.probability(input));
+    }
+
+    @Test
     void learnedEffectsPointTheExpectedWay() {
         for (double w : model.weights()) {
             assertThat(w).isPositive();          // the synthetic data rewards every feature
@@ -246,6 +287,18 @@ class PlacementModelTest {
         assertThat(d.labels()).containsExactly(1, 0, 1);
         assertThat(d.synthetic()).isFalse();
         assertThat(d.source()).contains("CGPA scale 10");
+    }
+
+    @Test
+    void explicitCgpaScaleIsUsedForLeakFreeTrainingPreprocessing(@TempDir Path dir) throws Exception {
+        Path csv = dir.resolve("placement.csv");
+        Files.writeString(csv, "CGPA,Projects,Internships,Communication,Extra_Curricular_Score,Placed\n"
+                + "3.9,1,No,5,5,Yes\n");
+
+        PlacementDataset data = PlacementDataset.load(csv, 10.0);
+
+        assertThat(data.rows().get(0)[0]).isCloseTo(0.39, within(1e-12));
+        assertThat(data.source()).contains("CGPA scale 10");
     }
 
     @Test

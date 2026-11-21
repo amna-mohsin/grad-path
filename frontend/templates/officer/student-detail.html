@@ -21,7 +21,7 @@
 </div>
 <div class="notice info" th:if="${estimate != null}"><b>Model placement estimate (secondary):</b>
     <span th:text="${estimate.percentLabel() + ' - ' + estimate.band()}">58%</span>
-    <span class="muted" th:text="${'(logistic regression ' + estimate.modelVersion() + (estimate.synthetic() ? ', practice model trained on synthetic data' : '') + '). The rule-based score above remains the official measure.'}">note</span>
+    <span class="muted" th:text="${'(' + estimate.algorithmName() + ' ' + estimate.modelVersion() + (estimate.synthetic() ? ', practice model trained on synthetic data' : '') + '). The rule-based score above remains the official measure.'}">note</span>
     <a th:href="@{/model}">About the model</a>
 </div>
 

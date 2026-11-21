@@ -17,6 +17,7 @@ public class ActivityLog {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
+    /** Optional account link; the log and actor-name snapshot survive account deletion. */
     @Column(name = "user_id")
     private Integer userId;
     @Column(name = "actor_name", length = 120, nullable = false)

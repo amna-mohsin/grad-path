@@ -62,7 +62,7 @@
         <div style="font-size:2.4rem;font-weight:700" th:text="${estimate.percentLabel()}">58%</div>
         <span class="badge" th:classappend="'b-' + ${estimate.badge()}" th:text="${estimate.band()}">Moderate</span>
         <span class="badge b-warn" th:if="${estimate.synthetic()}">Practice model</span>
-        <p class="muted small mt-s" th:text="'Placement rate in the training data: ' + ${estimate.baseRateLabel()} + '. Model ' + ${estimate.modelVersion()} + '.'">base</p>
+        <p class="muted small mt-s" th:text="'Placement rate in the training data: ' + ${estimate.baseRateLabel()} + '. ' + ${estimate.algorithmName()} + ' model ' + ${estimate.modelVersion()} + '.'">base</p>
         <p class="muted small" th:if="${estimate.extrapolated()}">Some of your values are outside the range the model
             was trained on, so they were treated as the nearest value it has seen.</p>
         <ul class="list">
@@ -72,7 +72,7 @@
     </div>
     <div th:replace="~{fragments/ui :: chart(${contributionChart}, 'Feature effects on your placement estimate')}"></div>
 </div>
-<div class="insight"><b class="lead">How this differs from your score:</b> a logistic-regression model looks at five
+<div class="insight"><b class="lead">How this differs from your score:</b> <span th:text="${estimate.algorithmName()}">The selected model</span> looks at five
     of your inputs (CGPA, projects, internship, communication, extracurricular) and estimates how often students
     with similar values were placed in its training data. <span th:text="${modelDisclaimer}">disclaimer</span>
     <a th:href="@{/model}">About the model</a>.</div>

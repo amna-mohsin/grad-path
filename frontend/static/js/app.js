@@ -42,6 +42,19 @@
   document.addEventListener('DOMContentLoaded', () => {
     localTimes();
 
+    // Reveal or mask password fields on the public sign-in and registration forms.
+    document.querySelectorAll('[data-password-toggle]').forEach(button => {
+      const wrapper = button.closest('[data-password-field]');
+      const input = wrapper && wrapper.querySelector('input[type=password], input[type=text]');
+      if (!input) { return; }
+      button.addEventListener('click', () => {
+        const visible = input.type === 'password';
+        input.type = visible ? 'text' : 'password';
+        button.setAttribute('aria-label', (visible ? 'Hide ' : 'Show ') + button.dataset.passwordToggle);
+        button.setAttribute('aria-pressed', String(visible));
+      });
+    });
+
     // Mobile navigation drawer.
     document.querySelectorAll('[data-nav-toggle]').forEach(btn => btn.addEventListener('click', () => {
       const open = document.body.classList.toggle('nav-open');
