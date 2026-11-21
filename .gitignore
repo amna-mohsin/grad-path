@@ -6,8 +6,6 @@
 # Build output (Maven)
 target/
 
-
-
 # IDE / OS
 .idea/
 *.iml
