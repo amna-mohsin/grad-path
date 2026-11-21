@@ -6,8 +6,7 @@
 # Build output (Maven)
 target/
 
-# Optional placement dataset for retraining the model (check its licence before committing)
-data/kaggle/*.csv
+
 
 # IDE / OS
 .idea/
